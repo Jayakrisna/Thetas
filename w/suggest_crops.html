@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crop Suggestions Using AI</title>
+    
+    <style>
+        /* Reset some default styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #e9ecef;
+            /* Light grey background for a modern look */
+            color: #343a40;
+            /* Dark grey text for contrast */
+            line-height: 1.6;
+        }
+
+        header {
+            background: linear-gradient(to right, #34eb4f, #76c7c0);
+            /* Fresh green gradient */
+            color: white;
+            padding: 30px 0;
+            text-align: center;
+            position: relative;
+        }
+
+        header h1 {
+            font-size: 2.8em;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 25px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            margin: 20px 0;
+            font-size: 2em;
+            color: #34eb4f;
+            /* Green for headings */
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        input[type="date"],
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #76c7c0;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input[type="date"]:focus,
+        input[type="number"]:focus {
+            border-color: #34eb4f;
+            /* Change border color on focus */
+        }
+
+        button {
+            background-color: #34eb4f;
+            /* Fresh green button */
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.2em;
+            transition: background-color 0.3s;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: #28a745;
+            /* Darker green on hover */
+        }
+
+        .loading {
+            display: none;
+            /* Hidden by default */
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f1f3f5;
+            border-radius: 8px;
+            border: 1px solid #d1d1d1;
+        }
+
+        .result h3 {
+            margin-bottom: 15px;
+            font-size: 1.8em;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            padding: 15px 0;
+            background-color: #343a40;
+            color: white;
+        }
+
+        /* Responsive design */
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            header h1 {
+                font-size: 2.2em;
+            }
+
+            button {
+                font-size: 1em;
+            }
+        }
+
+        /* Animation */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Crop Suggestions for Next Year</h1>
+    </header>
+    <div class="container">
+        <div id="loading" class="loading">Loading... <div class="spinner"></div>
+        </div>
+        <div id="cropSuggestions" class="result fade-in"></div>
+    </div>
+
+    <script>
+        // Fetch mean weather data from localStorage
+        const meanWeatherData = JSON.parse(localStorage.getItem('meanWeatherData'));
+
+        // Show loading animation
+        const loadingDiv = document.getElementById('loading');
+        loadingDiv.style.display = 'block';
+
+        // Prepare the message content for the Llama3 model
+        const prompt = `Based on the following monthly weather data, suggest the best crops for the climate:\n\n${JSON.stringify(meanWeatherData)}`;
+
+        // Create the request payload
+        const requestPayload = {
+            messages: [
+                {
+                    role: "system",
+                    content: "You are an expert agricultural advisor who provides crop suggestions based on weather data. Just tell the best crops that can be planted based on the given weather prediction. Format your reply in HTML."
+                },
+                {
+                    role: "user",
+                    content: prompt
+                }
+            ],
+            model: "llama3-8b-8192"
+        };
+
+        // Send the data to the Llama3 model to get crop suggestions
+        fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer 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`, // Replace with your actual API key
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestPayload)
+        })
+            .then(response => response.json())
+            .then(data => {
+                // Hide loading animation
+                loadingDiv.style.display = 'none';
+
+                // Extract and display the crop suggestions from the response
+                const cropSuggestionsDiv = document.getElementById('cropSuggestions');
+                cropSuggestionsDiv.innerHTML = ''; // Clear previous suggestions
+
+                // Assuming the response contains an array of suggestions
+                if (data.choices && data.choices.length > 0) {
+                    const suggestions = data.choices[0].message.content; // Extract suggestions from the response
+                    cropSuggestionsDiv.innerHTML = suggestions; // Directly insert HTML
+                } else {
+                    cropSuggestionsDiv.textContent = "No crop suggestions available.";
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching crop suggestions:', error);
+                loadingDiv.style.display = 'none'; // Hide loading on error
+            });
+    </script>
+
+</body>
+
+</html>
